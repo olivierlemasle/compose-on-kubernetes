@@ -249,7 +249,7 @@ func (c *installer) isInstalled() (Status, error) {
 		return Status{}, err
 	}
 	isCrdPresent := true
-	_, err = crds.CustomResourceDefinitions().Get("stacks.compose.docker.com", metav1.GetOptions{})
+	_, err = crds.CustomResourceDefinitions().Get(context.TODO(), "stacks.compose.docker.com", metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			isCrdPresent = false
@@ -257,7 +257,7 @@ func (c *installer) isInstalled() (Status, error) {
 			return Status{}, err
 		}
 	}
-	apps, err := c.appsClient.Deployments(metav1.NamespaceAll).List(metav1.ListOptions{
+	apps, err := c.appsClient.Deployments(metav1.NamespaceAll).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: everythingSelector,
 	})
 	if err != nil {

@@ -105,7 +105,7 @@ func WaitNPods(config *rest.Config, namespace string, count int, timeout time.Du
 	period := 2 * time.Second
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(period) {
 		log.Debugf("Check pod(s) are running...")
-		pods, err := client.Pods(namespace).List(metav1.ListOptions{
+		pods, err := client.Pods(namespace).List(context.TODO(), metav1.ListOptions{
 			LabelSelector: everythingSelector,
 		})
 		if err != nil {
@@ -197,7 +197,7 @@ func IsRunning(config *rest.Config) (bool, error) {
 func (c *installer) createNamespace(*installerContext) error {
 	log.Debugf("Create namespace: %s", c.commonOptions.Namespace)
 
-	if _, err := c.coreClient.Namespaces().Get(c.commonOptions.Namespace, metav1.GetOptions{}); err == nil {
+	if _, err := c.coreClient.Namespaces().Get(context.TODO(), c.commonOptions.Namespace, metav1.GetOptions{}); err == nil {
 		return nil
 	}
 	ns := &corev1types.Namespace{
@@ -210,7 +210,7 @@ func (c *installer) createNamespace(*installerContext) error {
 		return err
 	}
 	if shouldDo {
-		_, err := c.coreClient.Namespaces().Create(ns)
+		_, err := c.coreClient.Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{})
 		return err
 	}
 	return nil
@@ -221,7 +221,7 @@ func (c *installer) createPullSecretIfRequired(ctx *installerContext) error {
 		return nil
 	}
 	log.Debug("Create pull secret")
-	secret, err := c.coreClient.Secrets(c.commonOptions.Namespace).Get("compose", metav1.GetOptions{})
+	secret, err := c.coreClient.Secrets(c.commonOptions.Namespace).Get(context.TODO(), "compose", metav1.GetOptions{})
 	if err == nil {
 		ctx.pullSecret = secret
 		return nil
@@ -248,7 +248,7 @@ func (c *installer) createPullSecretIfRequired(ctx *installerContext) error {
 		return err
 	}
 	if shouldDo {
-		secret, err = c.coreClient.Secrets(c.commonOptions.Namespace).Create(secret)
+		secret, err = c.coreClient.Secrets(c.commonOptions.Namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 	}
 	ctx.pullSecret = secret
 	return err
@@ -256,7 +256,7 @@ func (c *installer) createPullSecretIfRequired(ctx *installerContext) error {
 
 func (c *installer) createServiceAccount(ctx *installerContext) error {
 	log.Debug("Create ServiceAccount")
-	sa, err := c.coreClient.ServiceAccounts(c.commonOptions.Namespace).Get("compose", metav1.GetOptions{})
+	sa, err := c.coreClient.ServiceAccounts(c.commonOptions.Namespace).Get(context.TODO(), "compose", metav1.GetOptions{})
 	if err == nil {
 		ctx.serviceAccount = sa
 		return nil
@@ -273,7 +273,7 @@ func (c *installer) createServiceAccount(ctx *installerContext) error {
 		return err
 	}
 	if shouldDo {
-		sa, err = c.coreClient.ServiceAccounts(c.commonOptions.Namespace).Create(sa)
+		sa, err = c.coreClient.ServiceAccounts(c.commonOptions.Namespace).Create(context.TODO(), sa, metav1.CreateOptions{})
 	}
 	ctx.serviceAccount = sa
 	return err
@@ -409,13 +409,13 @@ func (c *installer) createDefaultClusterRoles(_ *installerContext) error {
 	var shouldDo bool
 	roles := []*rbacv1types.ClusterRole{viewStackRole(), editStackRole(), adminStackRole()}
 	for _, r := range roles {
-		existing, err := c.rbacClient.ClusterRoles().Get(r.Name, metav1.GetOptions{})
+		existing, err := c.rbacClient.ClusterRoles().Get(context.TODO(), r.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			if shouldDo, err = c.objectFilter.filter(r); err != nil {
 				return err
 			}
 			if shouldDo {
-				if _, err := c.rbacClient.ClusterRoles().Create(r); err != nil {
+				if _, err := c.rbacClient.ClusterRoles().Create(context.TODO(), r, metav1.CreateOptions{}); err != nil {
 					return err
 				}
 			}
@@ -427,7 +427,7 @@ func (c *installer) createDefaultClusterRoles(_ *installerContext) error {
 				return err
 			}
 			if shouldDo {
-				if _, err := c.rbacClient.ClusterRoles().Update(r); err != nil {
+				if _, err := c.rbacClient.ClusterRoles().Update(context.TODO(), r, metav1.UpdateOptions{}); err != nil {
 					return err
 				}
 			}
@@ -437,7 +437,7 @@ func (c *installer) createDefaultClusterRoles(_ *installerContext) error {
 }
 
 func (c *installer) createSAClusterRole() error {
-	role, err := c.rbacClient.ClusterRoles().Get("compose-service", metav1.GetOptions{})
+	role, err := c.rbacClient.ClusterRoles().Get(context.TODO(), "compose-service", metav1.GetOptions{})
 	var shouldDo bool
 	if apierrors.IsNotFound(err) {
 		role = &rbacv1types.ClusterRole{
@@ -451,7 +451,7 @@ func (c *installer) createSAClusterRole() error {
 			return err
 		}
 		if shouldDo {
-			role, err = c.rbacClient.ClusterRoles().Create(role)
+			role, err = c.rbacClient.ClusterRoles().Create(context.TODO(), role, metav1.CreateOptions{})
 		}
 	} else if err == nil {
 		role.Rules = composeRoleRules
@@ -459,7 +459,7 @@ func (c *installer) createSAClusterRole() error {
 			return err
 		}
 		if shouldDo {
-			role, err = c.rbacClient.ClusterRoles().Update(role)
+			role, err = c.rbacClient.ClusterRoles().Update(context.TODO(), role, metav1.UpdateOptions{})
 		}
 	}
 	return err
@@ -520,7 +520,7 @@ func (c *installer) createSARoleBindings(ctx *installerContext) error {
 	var shouldDo bool
 	for _, req := range requiredRoleBindings {
 		shouldCreate := false
-		rb, err := c.rbacClient.RoleBindings(req.namespace).Get(req.name, metav1.GetOptions{})
+		rb, err := c.rbacClient.RoleBindings(req.namespace).Get(context.TODO(), req.name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			shouldCreate = true
 			rb = &rbacv1types.RoleBinding{
@@ -541,9 +541,9 @@ func (c *installer) createSARoleBindings(ctx *installerContext) error {
 		}
 		if shouldDo {
 			if shouldCreate {
-				_, err = c.rbacClient.RoleBindings(req.namespace).Create(rb)
+				_, err = c.rbacClient.RoleBindings(req.namespace).Create(context.TODO(), rb, metav1.CreateOptions{})
 			} else {
-				_, err = c.rbacClient.RoleBindings(req.namespace).Update(rb)
+				_, err = c.rbacClient.RoleBindings(req.namespace).Update(context.TODO(), rb, metav1.UpdateOptions{})
 			}
 		}
 		if err != nil {
@@ -552,7 +552,7 @@ func (c *installer) createSARoleBindings(ctx *installerContext) error {
 	}
 	for _, req := range requiredClusteRoleBindings {
 		shouldCreate := false
-		crb, err := c.rbacClient.ClusterRoleBindings().Get(req.name, metav1.GetOptions{})
+		crb, err := c.rbacClient.ClusterRoleBindings().Get(context.TODO(), req.name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			shouldCreate = true
 			crb = &rbacv1types.ClusterRoleBinding{
@@ -572,9 +572,9 @@ func (c *installer) createSARoleBindings(ctx *installerContext) error {
 		}
 		if shouldDo {
 			if shouldCreate {
-				_, err = c.rbacClient.ClusterRoleBindings().Create(crb)
+				_, err = c.rbacClient.ClusterRoleBindings().Create(context.TODO(), crb, metav1.CreateOptions{})
 			} else {
-				_, err = c.rbacClient.ClusterRoleBindings().Update(crb)
+				_, err = c.rbacClient.ClusterRoleBindings().Update(context.TODO(), crb, metav1.UpdateOptions{})
 			}
 		}
 		if err != nil {
@@ -731,12 +731,12 @@ func (c *installer) createAPIServer(ctx *installerContext) error {
 				deploy.Spec.Template.Spec.Containers[ix].LivenessProbe = nil
 			}
 		}
-		d, err := c.appsClient.Deployments(c.commonOptions.Namespace).Get("compose-api", metav1.GetOptions{})
+		d, err := c.appsClient.Deployments(c.commonOptions.Namespace).Get(context.TODO(), "compose-api", metav1.GetOptions{})
 		if err == nil {
 			deploy.ObjectMeta.ResourceVersion = d.ObjectMeta.ResourceVersion
-			_, err = c.appsClient.Deployments(c.commonOptions.Namespace).Update(deploy)
+			_, err = c.appsClient.Deployments(c.commonOptions.Namespace).Update(context.TODO(), deploy, metav1.UpdateOptions{})
 		} else {
-			_, err = c.appsClient.Deployments(c.commonOptions.Namespace).Create(deploy)
+			_, err = c.appsClient.Deployments(c.commonOptions.Namespace).Create(context.TODO(), deploy, metav1.CreateOptions{})
 		}
 		if err != nil {
 			return err
@@ -776,13 +776,13 @@ func (c *installer) createAPIServerService(port int) error {
 		return err
 	}
 	if shouldDo {
-		s, err := c.coreClient.Services(c.commonOptions.Namespace).Get("compose-api", metav1.GetOptions{})
+		s, err := c.coreClient.Services(c.commonOptions.Namespace).Get(context.TODO(), "compose-api", metav1.GetOptions{})
 		if err == nil {
 			svc.Spec.ClusterIP = s.Spec.ClusterIP
 			svc.ObjectMeta.ResourceVersion = s.ObjectMeta.ResourceVersion
-			_, err = c.coreClient.Services(c.commonOptions.Namespace).Update(svc)
+			_, err = c.coreClient.Services(c.commonOptions.Namespace).Update(context.TODO(), svc, metav1.UpdateOptions{})
 		} else {
-			_, err = c.coreClient.Services(c.commonOptions.Namespace).Create(svc)
+			_, err = c.coreClient.Services(c.commonOptions.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		}
 		return err
 	}
@@ -896,13 +896,13 @@ func (c *installer) createController(ctx *installerContext) error {
 				deploy.Spec.Template.Spec.Containers[ix].LivenessProbe = nil
 			}
 		}
-		d, err := c.appsClient.Deployments(c.commonOptions.Namespace).Get("compose", metav1.GetOptions{})
+		d, err := c.appsClient.Deployments(c.commonOptions.Namespace).Get(context.TODO(), "compose", metav1.GetOptions{})
 		if err == nil {
 			deploy.ObjectMeta.ResourceVersion = d.ObjectMeta.ResourceVersion
-			if _, err = c.appsClient.Deployments(c.commonOptions.Namespace).Update(deploy); err != nil {
+			if _, err = c.appsClient.Deployments(c.commonOptions.Namespace).Update(context.TODO(), deploy, metav1.UpdateOptions{}); err != nil {
 				return err
 			}
-		} else if _, err = c.appsClient.Deployments(c.commonOptions.Namespace).Create(deploy); err != nil {
+		} else if _, err = c.appsClient.Deployments(c.commonOptions.Namespace).Create(context.TODO(), deploy, metav1.CreateOptions{}); err != nil {
 			return err
 		}
 	}
@@ -914,17 +914,17 @@ func (c *installer) createController(ctx *installerContext) error {
 }
 
 func (c *installer) createDebugService(name string, port int32, labels map[string]string) error {
-	svc, err := c.coreClient.Services(c.commonOptions.Namespace).Get(name, metav1.GetOptions{})
+	svc, err := c.coreClient.Services(c.commonOptions.Namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err == nil {
 		svc.Spec.Type = corev1types.ServiceTypeLoadBalancer
 		svc.Spec.Ports = []corev1types.ServicePort{
 			{Name: "delve", Port: port, TargetPort: intstr.FromInt(40000)},
 		}
 		svc.Spec.Selector = labels
-		_, err = c.coreClient.Services(c.commonOptions.Namespace).Update(svc)
+		_, err = c.coreClient.Services(c.commonOptions.Namespace).Update(context.TODO(), svc, metav1.UpdateOptions{})
 		return err
 	}
-	_, err = c.coreClient.Services(c.commonOptions.Namespace).Create(&corev1types.Service{
+	_, err = c.coreClient.Services(c.commonOptions.Namespace).Create(context.TODO(), &corev1types.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: labels,
@@ -936,6 +936,6 @@ func (c *installer) createDebugService(name string, port int32, labels map[strin
 				{Name: "delve", Port: port, TargetPort: intstr.FromInt(40000)},
 			},
 		},
-	})
+	}, metav1.CreateOptions{})
 	return err
 }

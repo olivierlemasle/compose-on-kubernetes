@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -116,7 +117,7 @@ func newNamespace(config *rest.Config, namespace string) (*Namespace, error) {
 
 // HasStorageClass returns true if cluster has at least one StorageClass defined
 func (ns *Namespace) HasStorageClass() (bool, error) {
-	storageClasses, err := ns.storageClasses.List(metav1.ListOptions{})
+	storageClasses, err := ns.storageClasses.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -187,7 +188,7 @@ func (ns *Namespace) CreatePullSecret(name, server, username, password string) e
 			apiv1.DockerConfigJsonKey: data,
 		},
 	}
-	_, err = ns.Secrets().Create(s)
+	_, err = ns.Secrets().Create(context.TODO(), s, metav1.CreateOptions{})
 	return err
 }
 
@@ -225,7 +226,7 @@ func (ns *Namespace) CreateStack(strategy StackOperationStrategy, name, composeF
 			},
 			ComposeFile: composeFile,
 		}
-		return nil, ns.stackRESTv1beta2.Post().Namespace(ns.name).Name(name).Resource("stacks").SubResource("composefile").Body(compose).Do().Error()
+		return nil, ns.stackRESTv1beta2.Post().Namespace(ns.name).Name(name).Resource("stacks").SubResource("composefile").Body(compose).Do(context.TODO()).Error()
 	case StackOperationV1beta2Stack:
 		var stack *v1beta2.Stack
 		var err error
@@ -314,7 +315,7 @@ func (ns *Namespace) UpdateStack(strategy StackOperationStrategy, name, composeF
 			},
 			ComposeFile: composeFile,
 		}
-		return nil, ns.stackRESTv1beta2.Put().Namespace(ns.name).Name(name).Resource("stacks").SubResource("composefile").Body(compose).Do().Error()
+		return nil, ns.stackRESTv1beta2.Put().Namespace(ns.name).Name(name).Resource("stacks").SubResource("composefile").Body(compose).Do(context.TODO()).Error()
 	case StackOperationV1alpha3:
 		p := patch.New()
 		config, err := parsing.LoadStackData([]byte(composeFile), map[string]string{})
@@ -443,7 +444,7 @@ func (ns *Namespace) ContainsNPods(count int) wait.ConditionFunc {
 // PodIsActuallyRemoved is a poller that checks that a pod has been terminated
 func (ns *Namespace) PodIsActuallyRemoved(name string) wait.ConditionFunc {
 	return func() (bool, error) {
-		_, err := ns.pods.Get(name, metav1.GetOptions{})
+		_, err := ns.pods.Get(context.TODO(), name, metav1.GetOptions{})
 		if kerrors.IsNotFound(err) {
 			return true, nil
 		}
@@ -528,7 +529,7 @@ func (ns *Namespace) IsStackFailed(name string, errorSubstr string) wait.Conditi
 // IsServicePresent is a poller that checks if a service is present.
 func (ns *Namespace) IsServicePresent(labelSelector string) wait.ConditionFunc {
 	return func() (bool, error) {
-		services, err := ns.services.List(metav1.ListOptions{
+		services, err := ns.services.List(context.TODO(), metav1.ListOptions{
 			LabelSelector: labelSelector,
 		})
 		if err != nil {
@@ -546,7 +547,7 @@ func (ns *Namespace) IsServicePresent(labelSelector string) wait.ConditionFunc {
 // ServiceCount is a poller that checks a number of services to be present.
 func (ns *Namespace) ServiceCount(labelSelector string, count int) wait.ConditionFunc {
 	return func() (bool, error) {
-		services, err := ns.services.List(metav1.ListOptions{
+		services, err := ns.services.List(context.TODO(), metav1.ListOptions{
 			LabelSelector: labelSelector,
 		})
 		if err != nil {
@@ -564,7 +565,7 @@ func (ns *Namespace) ServiceCount(labelSelector string, count int) wait.Conditio
 // IsServiceNotPresent is a poller that checks if a service is not present.
 func (ns *Namespace) IsServiceNotPresent(labelSelector string) wait.ConditionFunc {
 	return func() (bool, error) {
-		services, err := ns.services.List(metav1.ListOptions{
+		services, err := ns.services.List(context.TODO(), metav1.ListOptions{
 			LabelSelector: labelSelector,
 		})
 		if err != nil {
@@ -586,7 +587,7 @@ func (ns *Namespace) IsServiceResponding(service string, url string, expectedTex
 		resp, err := ns.servicesSupplier().
 			Name(service).
 			SubResource(strings.Split(url, "/")...).
-			DoRaw()
+			DoRaw(context.TODO())
 		if err != nil {
 			return false, nil
 		}
@@ -601,7 +602,7 @@ func (ns *Namespace) IsServiceResponding(service string, url string, expectedTex
 
 // ListPods lists the pods that match a given selector.
 func (ns *Namespace) ListPods(labelSelector string) ([]apiv1.Pod, error) {
-	pods, err := ns.pods.List(metav1.ListOptions{
+	pods, err := ns.pods.List(context.TODO(), metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -618,7 +619,7 @@ func (ns *Namespace) ListAllPods() ([]apiv1.Pod, error) {
 
 // ListDeployments lists the deployments that match a given selector.
 func (ns *Namespace) ListDeployments(labelSelector string) ([]appsv1.Deployment, error) {
-	deployments, err := ns.deployments.List(metav1.ListOptions{
+	deployments, err := ns.deployments.List(context.TODO(), metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -630,7 +631,7 @@ func (ns *Namespace) ListDeployments(labelSelector string) ([]appsv1.Deployment,
 
 // ListServices lists the services that match a given selector.
 func (ns *Namespace) ListServices(labelSelector string) ([]apiv1.Service, error) {
-	services, err := ns.services.List(metav1.ListOptions{
+	services, err := ns.services.List(context.TODO(), metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
@@ -642,7 +643,7 @@ func (ns *Namespace) ListServices(labelSelector string) ([]apiv1.Service, error)
 
 // ListNodes lists the nodes available in the cluster.
 func (ns *Namespace) ListNodes() ([]apiv1.Node, error) {
-	nodes, err := ns.nodes.List(metav1.ListOptions{})
+	nodes, err := ns.nodes.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

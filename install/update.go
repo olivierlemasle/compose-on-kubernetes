@@ -42,7 +42,7 @@ const (
 
 func createBackupCrd(crds apiextensionsclient.CustomResourceDefinitionInterface) error {
 	log.Info("Creating backup CRD")
-	_, err := crds.Create(&apiextensions.CustomResourceDefinition{
+	_, err := crds.Create(context.TODO(), &apiextensions.CustomResourceDefinition{
 		ObjectMeta: v1.ObjectMeta{
 			Name: "stackbackups." + backupAPIGroup,
 		},
@@ -57,7 +57,7 @@ func createBackupCrd(crds apiextensionsclient.CustomResourceDefinitionInterface)
 			},
 			Scope: apiextensions.NamespaceScoped,
 		},
-	})
+	}, metav1.CreateOptions{})
 	return err
 }
 
@@ -72,13 +72,13 @@ func copyStacksToBackupCrd(source stacks.StackList, kubeClient kubernetes.Interf
 		}
 		res := kubeClient.CoreV1().RESTClient().Verb("POST").
 			RequestURI(fmt.Sprintf("/apis/%s/v1beta1/namespaces/%s/stackbackups", backupAPIGroup, stack.Namespace)).
-			Body(jstack).Do()
+			Body(jstack).Do(context.TODO())
 		if res.Error() != nil {
 			if apierrors.IsAlreadyExists(res.Error()) {
 				// stack already exists, try updating it
 				updateRes := kubeClient.CoreV1().RESTClient().Verb("PUT").
 					RequestURI(fmt.Sprintf("/apis/%s/v1beta1/namespaces/%s/stackbackups", backupAPIGroup, stack.Namespace)).
-					Body(jstack).Do()
+					Body(jstack).Do(context.TODO())
 				if updateRes.Error() == nil {
 					continue
 				} else {
@@ -99,7 +99,7 @@ func Backup(config *rest.Config, mode int) error {
 		return err
 	}
 	crds := extClient.CustomResourceDefinitions()
-	_, err = crds.Get("stackbackups."+backupAPIGroup, v1.GetOptions{})
+	_, err = crds.Get(context.TODO(), "stackbackups."+backupAPIGroup, v1.GetOptions{})
 	needsCreate := err != nil
 	if err == nil {
 		switch mode {
@@ -107,12 +107,12 @@ func Backup(config *rest.Config, mode int) error {
 			return errors.New("a previous backup already exists")
 		case BackupPreviousErase:
 			log.Info("Erasing previous backup")
-			err = crds.Delete("stackbackups."+backupAPIGroup, &v1.DeleteOptions{})
+			err = crds.Delete(context.TODO(), "stackbackups."+backupAPIGroup, v1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
 			for i := 0; i < 60; i++ {
-				_, err = crds.Get("stackbackups."+backupAPIGroup, v1.GetOptions{})
+				_, err = crds.Get(context.TODO(), "stackbackups."+backupAPIGroup, v1.GetOptions{})
 				if err != nil {
 					break
 				}
@@ -140,7 +140,7 @@ func Backup(config *rest.Config, mode int) error {
 		err = kubeClient.CoreV1().RESTClient().Verb("GET").
 			RequestURI("/apis/compose.docker.com/v1beta1/stacks").
 			VersionedParams(&listOpts, stacksscheme.ParameterCodec).
-			Do().
+			Do(context.TODO()).
 			Into(&source)
 		if err != nil {
 			return err
@@ -178,7 +178,7 @@ func Restore(baseConfig *rest.Config, impersonate bool) (map[string]error, error
 		err = kubeClient.CoreV1().RESTClient().Verb("GET").
 			RequestURI(fmt.Sprintf("/apis/%s/v1beta1/stackbackups", backupAPIGroup)).
 			VersionedParams(&listOpts, stacksscheme.ParameterCodec).
-			Do().
+			Do(context.TODO()).
 			Into(&source)
 		if err != nil {
 			return nil, err
@@ -262,7 +262,7 @@ func DryRun(config *rest.Config) (map[string]error, error) {
 		err = kubeClient.CoreV1().RESTClient().Verb("GET").
 			RequestURI("/apis/compose.docker.com/v1beta1/stacks").
 			VersionedParams(&listOpts, stacksscheme.ParameterCodec).
-			Do().
+			Do(context.TODO()).
 			Into(&source)
 		if err != nil {
 			return nil, err
@@ -285,15 +285,15 @@ func DeleteBackup(config *rest.Config) error {
 		return err
 	}
 	crds := extClient.CustomResourceDefinitions()
-	_, err = crds.Get("stackbackups."+backupAPIGroup, v1.GetOptions{})
+	_, err = crds.Get(context.TODO(), "stackbackups."+backupAPIGroup, v1.GetOptions{})
 	if err == nil {
-		return crds.Delete("stackbackups."+backupAPIGroup, &v1.DeleteOptions{})
+		return crds.Delete(context.TODO(), "stackbackups."+backupAPIGroup, v1.DeleteOptions{})
 	}
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 	for {
-		_, err = crds.Get("stackbackups."+backupAPIGroup, metav1.GetOptions{})
+		_, err = crds.Get(context.TODO(), "stackbackups."+backupAPIGroup, metav1.GetOptions{})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil
@@ -311,7 +311,7 @@ func HasBackupCRD(config *rest.Config) (bool, error) {
 		return false, err
 	}
 	crds := extClient.CustomResourceDefinitions()
-	_, err = crds.Get("stackbackups."+backupAPIGroup, v1.GetOptions{})
+	_, err = crds.Get(context.TODO(), "stackbackups."+backupAPIGroup, v1.GetOptions{})
 	if err == nil {
 		return true, nil
 	}
@@ -328,7 +328,7 @@ func CRDCRD(config *rest.Config) error {
 		return err
 	}
 	crds := extClient.CustomResourceDefinitions()
-	_, err = crds.Create(&apiextensions.CustomResourceDefinition{
+	_, err = crds.Create(context.TODO(), &apiextensions.CustomResourceDefinition{
 		ObjectMeta: v1.ObjectMeta{
 			Name: "stacks.compose.docker.com",
 		},
@@ -343,7 +343,7 @@ func CRDCRD(config *rest.Config) error {
 			},
 			Scope: apiextensions.NamespaceScoped,
 		},
-	})
+	}, metav1.CreateOptions{})
 	return err
 }
 
@@ -368,7 +368,7 @@ func UninstallComposeAPIServer(config *rest.Config, namespace string) error {
 	if err != nil {
 		return err
 	}
-	err = apps.Deployments(namespace).Delete("compose", &metav1.DeleteOptions{})
+	err = apps.Deployments(namespace).Delete(context.TODO(), "compose", metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}

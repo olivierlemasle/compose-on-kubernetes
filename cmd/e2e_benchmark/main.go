@@ -261,14 +261,14 @@ func collectLogsToStderr(cfg *rest.Config, ns string) {
 	if err != nil {
 		panic(err)
 	}
-	pods, err := client.CoreV1().Pods(ns).List(metav1.ListOptions{})
+	pods, err := client.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		panic(err)
 	}
 	for _, pod := range pods.Items {
 		for _, cont := range pod.Status.ContainerStatuses {
 			fmt.Fprintf(os.Stderr, "\nCurrent logs for %s/%s\n", pod.Name, cont.Name)
-			data, err := client.CoreV1().Pods(ns).GetLogs(pod.Name, &coretypes.PodLogOptions{Container: cont.Name}).Stream()
+			data, err := client.CoreV1().Pods(ns).GetLogs(pod.Name, &coretypes.PodLogOptions{Container: cont.Name}).Stream(context.TODO())
 			if err != nil {
 				panic(err)
 			}
@@ -296,13 +296,13 @@ func ensureInstalled(config *rest.Config) error {
 	if err != nil {
 		return err
 	}
-	if _, err := k8sclient.CoreV1().Namespaces().Get("benchmark", metav1.GetOptions{}); err != nil {
+	if _, err := k8sclient.CoreV1().Namespaces().Get(context.TODO(), "benchmark", metav1.GetOptions{}); err != nil {
 		if kerrors.IsNotFound(err) {
-			if _, err := k8sclient.CoreV1().Namespaces().Create(&coretypes.Namespace{
+			if _, err := k8sclient.CoreV1().Namespaces().Create(context.TODO(), &coretypes.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "benchmark",
 				},
-			}); err != nil {
+			}, metav1.CreateOptions{}); err != nil {
 				return err
 			}
 		} else {

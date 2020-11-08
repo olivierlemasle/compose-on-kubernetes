@@ -20,7 +20,7 @@ func (c *installer) createEtcdSecret(*installerContext) error {
 		return nil
 	}
 	update := true
-	secret, err := c.coreClient.Secrets(c.commonOptions.Namespace).Get("compose-etcd", metav1.GetOptions{})
+	secret, err := c.coreClient.Secrets(c.commonOptions.Namespace).Get(context.TODO(), "compose-etcd", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		update = false
 	} else if err != nil {
@@ -46,10 +46,10 @@ func (c *installer) createEtcdSecret(*installerContext) error {
 	}
 	if shouldDo {
 		if update {
-			_, err := c.coreClient.Secrets(c.commonOptions.Namespace).Update(secret)
+			_, err := c.coreClient.Secrets(c.commonOptions.Namespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 			return err
 		}
-		_, err = c.coreClient.Secrets(c.commonOptions.Namespace).Create(secret)
+		_, err = c.coreClient.Secrets(c.commonOptions.Namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 		return err
 	}
 	return nil
@@ -60,7 +60,7 @@ func (c *installer) createNetworkSecret(_ *installerContext) error {
 		return nil
 	}
 	update := true
-	secret, err := c.coreClient.Secrets(c.commonOptions.Namespace).Get("compose-tls", metav1.GetOptions{})
+	secret, err := c.coreClient.Secrets(c.commonOptions.Namespace).Get(context.TODO(), "compose-tls", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		update = false
 	} else if err != nil {
@@ -84,10 +84,10 @@ func (c *installer) createNetworkSecret(_ *installerContext) error {
 	}
 	if shouldDo {
 		if update {
-			_, err = c.coreClient.Secrets(c.commonOptions.Namespace).Update(secret)
+			_, err = c.coreClient.Secrets(c.commonOptions.Namespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 			return err
 		}
-		_, err = c.coreClient.Secrets(c.commonOptions.Namespace).Create(secret)
+		_, err = c.coreClient.Secrets(c.commonOptions.Namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 		return err
 	}
 	return nil

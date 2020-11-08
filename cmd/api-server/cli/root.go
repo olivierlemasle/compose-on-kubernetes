@@ -1,6 +1,7 @@
 package cli
 
 import (
+	context2 "context"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -203,7 +204,7 @@ func registerAggregatedAPI(aggregatorClient kubeaggreagatorv1beta1.APIServiceInt
 		},
 	}
 
-	existing, err := aggregatorClient.Get(apiVersion+".compose.docker.com", metav1.GetOptions{})
+	existing, err := aggregatorClient.Get(context2.TODO(), apiVersion+".compose.docker.com", metav1.GetOptions{})
 	if err == nil {
 		bundle, err := mergeCABundle(existing.Spec.CABundle, caBundle)
 		if err != nil {
@@ -211,11 +212,11 @@ func registerAggregatedAPI(aggregatorClient kubeaggreagatorv1beta1.APIServiceInt
 		}
 		apiService.ObjectMeta.ResourceVersion = existing.ObjectMeta.ResourceVersion
 		apiService.Spec.CABundle = bundle
-		if _, err := aggregatorClient.Update(apiService); err != nil {
+		if _, err := aggregatorClient.Update(context2.TODO(), apiService, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	} else {
-		if _, err := aggregatorClient.Create(apiService); err != nil {
+		if _, err := aggregatorClient.Create(context2.TODO(), apiService, metav1.CreateOptions{}); err != nil {
 			return err
 		}
 	}

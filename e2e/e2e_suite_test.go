@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -57,7 +58,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		setupConfig()
 		client, err := v1.NewForConfig(config)
 		Expect(err).NotTo(HaveOccurred())
-		if _, err := client.Namespaces().Get(*fryNamespace, metav1.GetOptions{}); err == nil {
+		if _, err := client.Namespaces().Get(context.TODO(), *fryNamespace, metav1.GetOptions{}); err == nil {
 			Expect(err).To(HaveOccurred())
 		}
 
@@ -85,19 +86,19 @@ var _ = SynchronizedAfterSuite(func() {},
 		fmt.Printf("Checking for restarts in %s\n", *fryNamespace)
 		client, err := v1.NewForConfig(config)
 		Expect(err).NotTo(HaveOccurred())
-		pods, err := client.Pods(*fryNamespace).List(metav1.ListOptions{})
+		pods, err := client.Pods(*fryNamespace).List(context.TODO(), metav1.ListOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		for _, pod := range pods.Items {
 			for _, cont := range pod.Status.ContainerStatuses {
 				if cont.RestartCount != 0 {
 					// dump previous container logs
 					fmt.Fprintf(os.Stderr, "\nPrevious logs for %s/%s\n", pod.Name, cont.Name)
-					data, err := client.Pods(*fryNamespace).GetLogs(pod.Name, &apiv1.PodLogOptions{Container: cont.Name, Previous: true}).Stream()
+					data, err := client.Pods(*fryNamespace).GetLogs(pod.Name, &apiv1.PodLogOptions{Container: cont.Name, Previous: true}).Stream(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 					io.Copy(os.Stderr, data)
 				}
 				fmt.Fprintf(os.Stderr, "\nCurrent logs for %s/%s\n", pod.Name, cont.Name)
-				data, err := client.Pods(*fryNamespace).GetLogs(pod.Name, &apiv1.PodLogOptions{Container: cont.Name}).Stream()
+				data, err := client.Pods(*fryNamespace).GetLogs(pod.Name, &apiv1.PodLogOptions{Container: cont.Name}).Stream(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 				io.Copy(os.Stderr, data)
 			}

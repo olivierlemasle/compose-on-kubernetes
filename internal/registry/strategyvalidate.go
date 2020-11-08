@@ -39,25 +39,25 @@ func validateCollisions(coreClient corev1.ServicesGetter, appsClient appsv1.Apps
 
 		var errs field.ErrorList
 		for _, v := range stackDef.Services {
-			svc, err := coreClient.Services(stack.Namespace).Get(v.Name, metav1.GetOptions{})
+			svc, err := coreClient.Services(stack.Namespace).Get(context.TODO(), v.Name, metav1.GetOptions{})
 			if err == nil {
 				errs = appendErrOnCollision(svc.ObjectMeta.Labels, "service", v.Name, stack.Name, errs)
 			}
 		}
 		for _, v := range stackDef.Deployments {
-			dep, err := appsClient.Deployments(stack.Namespace).Get(v.Name, metav1.GetOptions{})
+			dep, err := appsClient.Deployments(stack.Namespace).Get(context.TODO(), v.Name, metav1.GetOptions{})
 			if err == nil {
 				errs = appendErrOnCollision(dep.ObjectMeta.Labels, "deployment", v.Name, stack.Name, errs)
 			}
 		}
 		for _, v := range stackDef.Statefulsets {
-			ss, err := appsClient.StatefulSets(stack.Namespace).Get(v.Name, metav1.GetOptions{})
+			ss, err := appsClient.StatefulSets(stack.Namespace).Get(context.TODO(), v.Name, metav1.GetOptions{})
 			if err == nil {
 				errs = appendErrOnCollision(ss.ObjectMeta.Labels, "statefulset", v.Name, stack.Name, errs)
 			}
 		}
 		for _, v := range stackDef.Daemonsets {
-			ds, err := appsClient.DaemonSets(stack.Namespace).Get(v.Name, metav1.GetOptions{})
+			ds, err := appsClient.DaemonSets(stack.Namespace).Get(context.TODO(), v.Name, metav1.GetOptions{})
 			if err == nil {
 				errs = appendErrOnCollision(ds.ObjectMeta.Labels, "daemonset", v.Name, stack.Name, errs)
 			}

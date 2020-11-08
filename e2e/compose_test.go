@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -130,7 +131,7 @@ services:
 		Expect(items).To(HaveLen(1))
 		Expect(items[0].Name).To(Equal("app"))
 		var cf latest.ComposeFile
-		err = ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("composefile").Do().Into(&cf)
+		err = ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("composefile").Do(context.TODO()).Into(&cf)
 		expectNoError(err)
 		Expect(cf.ComposeFile).To(Equal(composeFile))
 
@@ -286,7 +287,7 @@ services:
 			},
 			Spec: map[string]int{"back": 2},
 		}
-		err = ns.RESTClientV1beta2().Put().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("scale").Body(&scalerV1beta2).Do().Error()
+		err = ns.RESTClientV1beta2().Put().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("scale").Body(&scalerV1beta2).Do(context.TODO()).Error()
 		expectNoError(err)
 		waitUntil(ns.ContainsNPods(2))
 
@@ -296,12 +297,12 @@ services:
 			},
 			Spec: map[string]int{"back": 1},
 		}
-		err = ns.RESTClientV1alpha3().Put().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("scale").Body(&scalerV1alpha3).Do().Error()
+		err = ns.RESTClientV1alpha3().Put().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("scale").Body(&scalerV1alpha3).Do(context.TODO()).Error()
 		expectNoError(err)
 		waitUntil(ns.ContainsNPods(1))
 
 		scalerV1alpha3.Spec["nope"] = 1
-		err = ns.RESTClientV1alpha3().Put().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("scale").Body(&scalerV1alpha3).Do().Error()
+		err = ns.RESTClientV1alpha3().Put().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("scale").Body(&scalerV1alpha3).Do(context.TODO()).Error()
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -547,7 +548,7 @@ services:
   "composeFile": "version: '3.2'\nservices:\n  back:\n    image: nginx:1.12.1-alpine"
 }
 }`, ns.Name())
-		res := kubeClient.CoreV1().RESTClient().Verb("POST").RequestURI(fmt.Sprintf("/apis/compose.docker.com/v1beta1/namespaces/%s/stacks", ns.Name())).Body([]byte(stackData)).Do()
+		res := kubeClient.CoreV1().RESTClient().Verb("POST").RequestURI(fmt.Sprintf("/apis/compose.docker.com/v1beta1/namespaces/%s/stacks", ns.Name())).Body([]byte(stackData)).Do(context.TODO())
 		expectNoError(res.Error())
 		waitUntil(ns.ContainsNPods(1))
 		waitUntil(ns.IsStackAvailable("app"))
@@ -615,7 +616,7 @@ services:
     image: nginx:1.12.1-alpine`)
 		Expect(err).To(HaveOccurred())
 
-		_, err = ns.Deployments().Create(&appsv1.Deployment{
+		_, err = ns.Deployments().Create(context.TODO(), &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "front3",
 				Namespace: ns.Name(),
@@ -638,7 +639,7 @@ services:
 					},
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		expectNoError(err)
 		_, err = ns.UpdateStack(cluster.StackOperationV1beta1, "app2", `version: '3.2'
 services:
@@ -659,7 +660,7 @@ services:
 		waitUntil(ns.IsStackAvailable("app"))
 		waitUntil(ns.IsServiceResponding(fmt.Sprintf("front-published:%d-tcp", port), "proxy/index.html", "Welcome to nginx!"))
 		ns.IsServiceResponding(fmt.Sprintf("front-published:%d-tcp", port), "proxy/nope.html", "nope")
-		s, err := ns.RESTClientV1beta2().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Stream()
+		s, err := ns.RESTClientV1beta2().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Stream(context.TODO())
 		expectNoError(err)
 		data, err := ioutil.ReadAll(s)
 		expectNoError(err)
@@ -668,7 +669,7 @@ services:
 		Expect(len(strings.Split(sdata, "\n"))).To(BeNumerically(">=", 2))
 		Expect(strings.Contains(sdata, "GET")).To(BeTrue())
 		// try with filter
-		s, err = ns.RESTClientV1beta2().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Param("filter", "404").Stream()
+		s, err = ns.RESTClientV1beta2().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Param("filter", "404").Stream(context.TODO())
 		expectNoError(err)
 		data, err = ioutil.ReadAll(s)
 		expectNoError(err)
@@ -689,7 +690,7 @@ services:
 		waitUntil(ns.IsStackAvailable("app"))
 		waitUntil(ns.IsServiceResponding(fmt.Sprintf("front-published:%d-tcp", port), "proxy/index.html", "Welcome to nginx!"))
 		ns.IsServiceResponding(fmt.Sprintf("front-published:%d-tcp", port), "proxy/nope.html", "nope")
-		s, err := ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Stream()
+		s, err := ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Stream(context.TODO())
 		expectNoError(err)
 		data, err := ioutil.ReadAll(s)
 		expectNoError(err)
@@ -698,7 +699,7 @@ services:
 		Expect(len(strings.Split(sdata, "\n"))).To(BeNumerically(">=", 2))
 		Expect(strings.Contains(sdata, "GET")).To(BeTrue())
 		// try with filter
-		s, err = ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Param("filter", "404").Stream()
+		s, err = ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Param("filter", "404").Stream(context.TODO())
 		expectNoError(err)
 		data, err = ioutil.ReadAll(s)
 		expectNoError(err)
@@ -719,7 +720,7 @@ services:
 		waitUntil(ns.IsStackAvailable("app"))
 		waitUntil(ns.IsServiceResponding(fmt.Sprintf("front-published:%d-tcp", port), "proxy/index.html", "Welcome to nginx!"))
 
-		s, err := ns.RESTClientV1beta2().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Param("follow", "true").Stream()
+		s, err := ns.RESTClientV1beta2().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Param("follow", "true").Stream(context.TODO())
 		expectNoError(err)
 		reader := bufio.NewReader(s)
 		lineStream := make(chan string, 100)
@@ -743,7 +744,7 @@ services:
 		expectNoError(err)
 		Expect(len(pods)).To(Equal(1))
 		originalPodName := pods[0].Name
-		ns.Pods().Delete(originalPodName, &metav1.DeleteOptions{})
+		ns.Pods().Delete(context.TODO(), originalPodName, metav1.DeleteOptions{})
 		waitUntil(ns.PodIsActuallyRemoved(originalPodName))
 
 		// check we get logs from the new pod
@@ -767,7 +768,7 @@ services:
 		waitUntil(ns.IsStackAvailable("app"))
 		waitUntil(ns.IsServiceResponding(fmt.Sprintf("front-published:%d-tcp", port), "proxy/index.html", "Welcome to nginx!"))
 
-		s, err := ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Param("follow", "true").Stream()
+		s, err := ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Param("follow", "true").Stream(context.TODO())
 		expectNoError(err)
 		reader := bufio.NewReader(s)
 		lineStream := make(chan string, 100)
@@ -791,7 +792,7 @@ services:
 		expectNoError(err)
 		Expect(len(pods)).To(Equal(1))
 		originalPodName := pods[0].Name
-		ns.Pods().Delete(originalPodName, &metav1.DeleteOptions{})
+		ns.Pods().Delete(context.TODO(), originalPodName, metav1.DeleteOptions{})
 		waitUntil(ns.PodIsActuallyRemoved(originalPodName))
 
 		// check we get logs from the new pod
@@ -889,7 +890,7 @@ services:
         target: /tmp/hostetc`)
 		expectNoError(err)
 		waitUntil(ns.IsStackAvailable("app"))
-		s, err := ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Stream()
+		s, err := ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Stream(context.TODO())
 		expectNoError(err)
 		defer s.Close()
 		data, err := ioutil.ReadAll(s)
@@ -914,7 +915,7 @@ volumes:
   myvolume:`)
 		expectNoError(err)
 		waitUntil(ns.IsStackAvailable("app"))
-		s, err := ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Stream()
+		s, err := ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Stream(context.TODO())
 		expectNoError(err)
 		defer s.Close()
 		data, err := ioutil.ReadAll(s)
@@ -937,7 +938,7 @@ services:
       - /tmp/mountvolume`)
 		expectNoError(err)
 		waitUntil(ns.IsStackAvailable("app"))
-		s, err := ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Stream()
+		s, err := ns.RESTClientV1alpha3().Get().Namespace(ns.Name()).Name("app").Resource("stacks").SubResource("log").Stream(context.TODO())
 		expectNoError(err)
 		defer s.Close()
 		data, err := ioutil.ReadAll(s)
@@ -1020,21 +1021,21 @@ configs:
   test-config:
     file: ./config-data`)
 		Expect(err).ToNot(HaveOccurred())
-		_, err = ns.ConfigMaps().Create(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Labels: map[string]string{labels.ForStackName: "app"}}})
+		_, err = ns.ConfigMaps().Create(context.TODO(), &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Labels: map[string]string{labels.ForStackName: "app"}}}, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
-		_, err = ns.Secrets().Create(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Labels: map[string]string{labels.ForStackName: "app"}}})
+		_, err = ns.Secrets().Create(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Labels: map[string]string{labels.ForStackName: "app"}}}, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		waitUntil(ns.IsStackAvailable("app"))
 		Expect(ns.DeleteStack("app")).ToNot(HaveOccurred())
 		waitUntil(func() (done bool, err error) {
-			_, err = ns.ConfigMaps().Get("test-config", metav1.GetOptions{})
+			_, err = ns.ConfigMaps().Get(context.TODO(), "test-config", metav1.GetOptions{})
 			if apierrors.IsNotFound(err) {
 				return true, nil
 			}
 			return false, err
 		})
 		waitUntil(func() (done bool, err error) {
-			_, err = ns.Secrets().Get("test-secret", metav1.GetOptions{})
+			_, err = ns.Secrets().Get(context.TODO(), "test-secret", metav1.GetOptions{})
 			if apierrors.IsNotFound(err) {
 				return true, nil
 			}
@@ -1082,7 +1083,7 @@ services:
     image: nginx:1.12.1-alpine`)
 		Expect(err).NotTo(HaveOccurred())
 		waitUntil(ns.IsStackAvailable("app"))
-		svc, err := ns.Services().Get("front", metav1.GetOptions{})
+		svc, err := ns.Services().Get(context.TODO(), "front", metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(svc.Spec.ClusterIP).To(Equal(corev1.ClusterIPNone))
 		stack.Spec.Services[0].InternalPorts = []latest.InternalPort{
@@ -1094,14 +1095,14 @@ services:
 		stack, err = ns.UpdateStackFromSpec("app", stack)
 		Expect(err).NotTo(HaveOccurred())
 		waitUntil(ns.IsStackAvailable("app"))
-		svc, err = ns.Services().Get("front", metav1.GetOptions{})
+		svc, err = ns.Services().Get(context.TODO(), "front", metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(svc.Spec.ClusterIP).NotTo(Equal(corev1.ClusterIPNone))
 		stack.Spec.Services[0].InternalPorts = nil
 		stack, err = ns.UpdateStackFromSpec("app", stack)
 		Expect(err).NotTo(HaveOccurred())
 		waitUntil(ns.IsStackAvailable("app"))
-		svc, err = ns.Services().Get("front", metav1.GetOptions{})
+		svc, err = ns.Services().Get(context.TODO(), "front", metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(svc.Spec.ClusterIP).To(Equal(corev1.ClusterIPNone))
 	})

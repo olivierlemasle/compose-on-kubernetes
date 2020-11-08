@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/docker/compose-on-kubernetes/internal/e2e/wait"
@@ -23,7 +24,7 @@ func CreateNamespace(createConfig, config *rest.Config, name string) (*Namespace
 
 	namespaces := coreV1Set.Namespaces()
 
-	_, err = namespaces.Get(name, metav1.GetOptions{})
+	_, err = namespaces.Get(context.TODO(), name, metav1.GetOptions{})
 	if err == nil {
 		err := DeleteNamespace(namespaces, name, true)
 		if err != nil {
@@ -32,11 +33,11 @@ func CreateNamespace(createConfig, config *rest.Config, name string) (*Namespace
 	}
 
 	By(fmt.Sprintf("Creating namespace %q for this suite.", name))
-	_, err = namespaces.Create(&v1.Namespace{
+	_, err = namespaces.Create(context.TODO(), &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-	})
+	}, metav1.CreateOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -55,7 +56,7 @@ func CreateNamespace(createConfig, config *rest.Config, name string) (*Namespace
 // DeleteNamespace deletes a namespace
 func DeleteNamespace(namespaces corev1.NamespaceInterface, ns string, waitForDeletion bool) error {
 	By(fmt.Sprintf("Destroying namespace %q for this suite.", ns))
-	err := namespaces.Delete(ns, &metav1.DeleteOptions{})
+	err := namespaces.Delete(context.TODO(), ns, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -70,6 +71,6 @@ func DeleteNamespace(namespaces corev1.NamespaceInterface, ns string, waitForDel
 }
 
 func isDeleted(namespaces corev1.NamespaceInterface, ns string) (bool, error) {
-	_, err := namespaces.Get(ns, metav1.GetOptions{})
+	_, err := namespaces.Get(context.TODO(), ns, metav1.GetOptions{})
 	return err != nil, nil
 }

@@ -1,6 +1,7 @@
 package v1beta2
 
 import (
+	"context"
 	scheme "github.com/docker/compose-on-kubernetes/api/client/clientset/scheme"
 	v1beta2 "github.com/docker/compose-on-kubernetes/api/compose/v1beta2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,7 +59,7 @@ func (c *stacks) Create(stack *v1beta2.Stack) (*v1beta2.Stack, error) {
 		Namespace(c.ns).
 		Resource("stacks").
 		Body(stack)).
-		Do().
+		Do(context.TODO()).
 		Into(result)
 	return result, err
 }
@@ -71,7 +72,7 @@ func (c *stacks) Update(stack *v1beta2.Stack) (*v1beta2.Stack, error) {
 		Resource("stacks").
 		Name(stack.Name).
 		Body(stack)).
-		Do().
+		Do(context.TODO()).
 		Into(result)
 	return result, err
 }
@@ -87,7 +88,7 @@ func (c *stacks) UpdateStatus(stack *v1beta2.Stack) (*v1beta2.Stack, error) {
 		Name(stack.Name).
 		SubResource("status").
 		Body(stack)).
-		Do().
+		Do(context.TODO()).
 		Into(result)
 	return result, err
 }
@@ -99,7 +100,7 @@ func (c *stacks) Delete(name string, options *v1.DeleteOptions) error {
 		Resource("stacks").
 		Name(name).
 		Body(options)).
-		Do().
+		Do(context.TODO()).
 		Error()
 }
 
@@ -110,7 +111,7 @@ func (c *stacks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.List
 		Resource("stacks").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options)).
-		Do().
+		Do(context.TODO()).
 		Error()
 }
 
@@ -122,7 +123,7 @@ func (c *stacks) Get(name string, options v1.GetOptions) (*v1beta2.Stack, error)
 		Resource("stacks").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(context.TODO()).
 		Into(result)
 	return result, err
 }
@@ -134,7 +135,7 @@ func (c *stacks) List(opts v1.ListOptions) (*v1beta2.StackList, error) {
 		Namespace(c.ns).
 		Resource("stacks").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
+		Do(context.TODO()).
 		Into(result)
 	return result, err
 }
@@ -146,7 +147,7 @@ func (c *stacks) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Namespace(c.ns).
 		Resource("stacks").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
+		Watch(context.TODO())
 }
 
 // Patch applies the patch and returns the patched stack.
@@ -158,7 +159,7 @@ func (c *stacks) Patch(name string, pt types.PatchType, data []byte, subresource
 		SubResource(subresources...).
 		Name(name).
 		Body(data)).
-		Do().
+		Do(context.TODO()).
 		Into(result)
 	return result, err
 }

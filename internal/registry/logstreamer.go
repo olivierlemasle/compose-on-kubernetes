@@ -2,6 +2,7 @@ package registry
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -45,6 +46,7 @@ func (s *logStreamer) DeepCopyObject() runtime.Object {
 // getPods stream logs in non-follow mode for existing pods of the stack
 func (s *logStreamer) getPods(cs *chanStream, core corev1.PodsGetter, tail *int64) error {
 	pods, err := core.Pods(s.namespace).List(
+		context.TODO(),
 		metav1.ListOptions{
 			LabelSelector: "com.docker.stack.namespace=" + s.name,
 		})
@@ -87,7 +89,7 @@ func (s *logStreamer) streamLogs(cs *chanStream, core corev1.PodsGetter, podName
 	logreader, err := core.Pods(s.namespace).GetLogs(podName, &apiv1.PodLogOptions{
 		Follow:    follow,
 		TailLines: tail,
-	}).Stream()
+	}).Stream(context.TODO())
 	if err != nil {
 		log.Errorf("Failed to get pod %s/%s logs: %s", s.namespace, podName, err)
 		return
@@ -200,6 +202,7 @@ func (s *logStreamer) ServeHTTP(out http.ResponseWriter, in *http.Request) {
 	}
 	if follow {
 		podWatcher, err := core.Pods(s.namespace).Watch(
+			context.TODO(),
 			metav1.ListOptions{
 				LabelSelector: "com.docker.stack.namespace=" + s.name,
 			})

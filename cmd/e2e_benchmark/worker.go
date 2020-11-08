@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -197,15 +198,15 @@ func benchmarkRun(cfg *rest.Config, workerID string, stackCount int, updateState
 		return err
 	}
 	// create namespace
-	_, err = k8sclient.CoreV1().Namespaces().Create(&coretypes.Namespace{
+	_, err = k8sclient.CoreV1().Namespaces().Create(context.TODO(), &coretypes.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: workerID,
 		},
-	})
+	}, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
-	defer k8sclient.CoreV1().Namespaces().Delete(workerID, nil)
+	defer k8sclient.CoreV1().Namespaces().Delete(context.TODO(), workerID, metav1.DeleteOptions{})
 	stacksclient, err := clientset.NewForConfig(cfg)
 	if err != nil {
 		return err

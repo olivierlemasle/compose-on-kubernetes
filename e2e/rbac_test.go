@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -41,7 +42,7 @@ var _ = Describe("Compose fry with permission", func() {
 		rbac, err := typedrbacv1.NewForConfig(config)
 		expectNoError(err)
 		// allow employee stack and kube access on namespace
-		_, err = rbac.Roles(ns.Name()).Create(&rbacv1.Role{
+		_, err = rbac.Roles(ns.Name()).Create(context.TODO(), &rbacv1.Role{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "office-role",
 				Namespace: ns.Name(),
@@ -51,10 +52,10 @@ var _ = Describe("Compose fry with permission", func() {
 				Resources: []string{"deployments", "replicasets", "pods", "stacks", "stacks/composefile"},
 				Verbs:     []string{"*"},
 			}},
-		})
+		}, metav1.CreateOptions{})
 		expectNoError(err)
 
-		_, err = rbac.RoleBindings(ns.Name()).Create(&rbacv1.RoleBinding{
+		_, err = rbac.RoleBindings(ns.Name()).Create(context.TODO(), &rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "office-role-binding",
 				Namespace: ns.Name(),
@@ -69,7 +70,7 @@ var _ = Describe("Compose fry with permission", func() {
 					Name: "employee",
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		expectNoError(err)
 
 		spec := `version: '3.2'
@@ -101,7 +102,7 @@ services:
 		rbac, err := typedrbacv1.NewForConfig(config)
 		expectNoError(err)
 		// allow employee stack access on denied namespace
-		_, err = rbac.Roles(ns.Name()).Create(&rbacv1.Role{
+		_, err = rbac.Roles(ns.Name()).Create(context.TODO(), &rbacv1.Role{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "denied-role",
 				Namespace: ns.Name(),
@@ -111,10 +112,10 @@ services:
 				Resources: []string{"stacks", "stacks/composefile"},
 				Verbs:     []string{"*"},
 			}},
-		})
+		}, metav1.CreateOptions{})
 		expectNoError(err)
 
-		_, err = rbac.RoleBindings(ns.Name()).Create(&rbacv1.RoleBinding{
+		_, err = rbac.RoleBindings(ns.Name()).Create(context.TODO(), &rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "denied-role-binding",
 				Namespace: ns.Name(),
@@ -129,7 +130,7 @@ services:
 					Name: "employee",
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		expectNoError(err)
 
 		spec := `version: '3.2'
@@ -177,7 +178,7 @@ services:
 		expectNoError(err)
 		rbac, err := typedrbacv1.NewForConfig(config)
 		expectNoError(err)
-		_, err = rbac.RoleBindings(originNS.Name()).Create(&rbacv1.RoleBinding{
+		_, err = rbac.RoleBindings(originNS.Name()).Create(context.TODO(), &rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "viewer-role-binding",
 				Namespace: originNS.Name(),
@@ -192,9 +193,9 @@ services:
 					Name: "viewer",
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		expectNoError(err)
-		_, err = rbac.RoleBindings(originNS.Name()).Create(&rbacv1.RoleBinding{
+		_, err = rbac.RoleBindings(originNS.Name()).Create(context.TODO(), &rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "editor-role-binding",
 				Namespace: originNS.Name(),
@@ -209,9 +210,9 @@ services:
 					Name: "editor",
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		expectNoError(err)
-		_, err = rbac.RoleBindings(originNS.Name()).Create(&rbacv1.RoleBinding{
+		_, err = rbac.RoleBindings(originNS.Name()).Create(context.TODO(), &rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "admin-role-binding",
 				Namespace: originNS.Name(),
@@ -226,7 +227,7 @@ services:
 					Name: "admin",
 				},
 			},
-		})
+		}, metav1.CreateOptions{})
 		expectNoError(err)
 		_, err = originNS.CreateStack(cluster.StackOperationV1beta2Stack, "by-cluster-admin", `version: '3.2'
 services:

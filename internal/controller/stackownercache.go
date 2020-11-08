@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -47,7 +48,7 @@ func (g *apiOwnerGetter) get(stack *latest.Stack) (*latest.Owner, error) {
 		Resource("stacks").
 		SubResource("owner").
 		VersionedParams(&metav1.GetOptions{}, scheme.ParameterCodec).
-		Do().
+		Do(context.TODO()).
 		Into(&owner); err != nil {
 		return nil, err
 	}

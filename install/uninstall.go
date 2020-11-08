@@ -43,19 +43,19 @@ func uninstallCore(config *rest.Config, namespace string) error {
 	if err != nil {
 		return err
 	}
-	if err = uninstallErrorFilter(client.Secrets(namespace).DeleteCollection(&deleteOptions, listOptions)); err != nil {
+	if err = uninstallErrorFilter(client.Secrets(namespace).DeleteCollection(context.TODO(), *&deleteOptions, listOptions)); err != nil {
 		return err
 	}
-	svcs, err := client.Services(namespace).List(listOptions)
+	svcs, err := client.Services(namespace).List(context.TODO(), listOptions)
 	if uninstallErrorFilter(err) != nil {
 		return err
 	}
 	for _, svc := range svcs.Items {
-		if err = uninstallErrorFilter(client.Services(namespace).Delete(svc.Name, &deleteBackgroundOptions)); err != nil {
+		if err = uninstallErrorFilter(client.Services(namespace).Delete(context.TODO(), svc.Name, *&deleteBackgroundOptions)); err != nil {
 			return err
 		}
 	}
-	return uninstallErrorFilter(client.ServiceAccounts(namespace).DeleteCollection(&deleteOptions, listOptions))
+	return uninstallErrorFilter(client.ServiceAccounts(namespace).DeleteCollection(context.TODO(), *&deleteOptions, listOptions))
 }
 
 func uninstallApps(config *rest.Config, namespace string) error {
@@ -63,7 +63,7 @@ func uninstallApps(config *rest.Config, namespace string) error {
 	if uninstallErrorFilter(err) != nil {
 		return err
 	}
-	return uninstallErrorFilter(apps.Deployments(namespace).DeleteCollection(&deleteOptions, listOptions))
+	return uninstallErrorFilter(apps.Deployments(namespace).DeleteCollection(context.TODO(), *&deleteOptions, listOptions))
 }
 
 func uninstallRbac(config *rest.Config) error {
@@ -71,13 +71,13 @@ func uninstallRbac(config *rest.Config) error {
 	if err != nil {
 		return err
 	}
-	if err = uninstallErrorFilter(rbac.ClusterRoleBindings().DeleteCollection(&deleteOptions, listOptions)); err != nil {
+	if err = uninstallErrorFilter(rbac.ClusterRoleBindings().DeleteCollection(context.TODO(), *&deleteOptions, listOptions)); err != nil {
 		return err
 	}
-	if err = uninstallErrorFilter(rbac.ClusterRoles().DeleteCollection(&deleteOptions, listOptions)); err != nil {
+	if err = uninstallErrorFilter(rbac.ClusterRoles().DeleteCollection(context.TODO(), *&deleteOptions, listOptions)); err != nil {
 		return err
 	}
-	return uninstallErrorFilter(rbac.RoleBindings("kube-system").DeleteCollection(&deleteOptions, listOptions))
+	return uninstallErrorFilter(rbac.RoleBindings("kube-system").DeleteCollection(context.TODO(), *&deleteOptions, listOptions))
 }
 
 func orphanAllStacks(stacks stacksclient.ComposeV1beta1Interface) error {
@@ -132,7 +132,7 @@ func UninstallCRD(config *rest.Config) error {
 	if err != nil {
 		return err
 	}
-	_, err = crds.ApiextensionsV1beta1().CustomResourceDefinitions().Get("stacks.compose.docker.com", metav1.GetOptions{})
+	_, err = crds.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), "stacks.compose.docker.com", metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -151,13 +151,14 @@ func UninstallCRD(config *rest.Config) error {
 	}
 
 	log.Info("Removing CRD")
-	if err = uninstallErrorFilter(crds.ApiextensionsV1beta1().CustomResourceDefinitions().Delete("stacks.compose.docker.com",
-		&metav1.DeleteOptions{})); err != nil {
+	if err = uninstallErrorFilter(crds.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(context.TODO(),
+		"stacks.compose.docker.com",
+		metav1.DeleteOptions{})); err != nil {
 		return err
 	}
 	// wait for crd removal
 	for {
-		_, err = crds.ApiextensionsV1beta1().CustomResourceDefinitions().Get("stacks.compose.docker.com", metav1.GetOptions{})
+		_, err = crds.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), "stacks.compose.docker.com", metav1.GetOptions{})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil
@@ -183,7 +184,7 @@ func Uninstall(config *rest.Config, namespace string, keepCRD bool) error {
 	}
 
 	if !keepCRD {
-		err = crds.ApiextensionsV1beta1().CustomResourceDefinitions().Delete("stacks.compose.docker.com", &deleteOptions)
+		err = crds.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(context.TODO(), "stacks.compose.docker.com", *&deleteOptions)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
@@ -198,13 +199,13 @@ func Uninstall(config *rest.Config, namespace string, keepCRD bool) error {
 		return err
 	}
 
-	apisvcs, err := aggregator.APIServices().List(metav1.ListOptions{})
+	apisvcs, err := aggregator.APIServices().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	for _, apisvc := range apisvcs.Items {
 		if apisvc.Labels[fryKey] == composeAPIServerFry {
-			err = aggregator.APIServices().Delete(apisvc.Name, &deleteBackgroundOptions)
+			err = aggregator.APIServices().Delete(context.TODO(), apisvc.Name, *&deleteBackgroundOptions)
 			if err != nil {
 				return err
 			}
@@ -230,7 +231,7 @@ func waitForNoCrd(ctx context.Context, config *rest.Config, namespace string) er
 		if isDone(ctx) {
 			return context.DeadlineExceeded
 		}
-		lst, err := crds.ApiextensionsV1beta1().CustomResourceDefinitions().List(listOptions)
+		lst, err := crds.ApiextensionsV1beta1().CustomResourceDefinitions().List(context.TODO(), listOptions)
 		if err != nil {
 			return err
 		}
@@ -250,7 +251,7 @@ func waitForNoApps(ctx context.Context, config *rest.Config, namespace string) e
 		if isDone(ctx) {
 			return context.DeadlineExceeded
 		}
-		lst, err := apps.Deployments(namespace).List(listOptions)
+		lst, err := apps.Deployments(namespace).List(context.TODO(), listOptions)
 		if err != nil {
 			return err
 		}
@@ -271,7 +272,7 @@ func waitForNoRbac(ctx context.Context, config *rest.Config, namespace string) e
 		if isDone(ctx) {
 			return context.DeadlineExceeded
 		}
-		lst1, err := rbac.ClusterRoleBindings().List(listOptions)
+		lst1, err := rbac.ClusterRoleBindings().List(context.TODO(), listOptions)
 		// if rbac is not enabled, List will fail with status 404 instead of returning an empty list
 		// in that case we can just leave early
 		if apierrors.IsNotFound(err) {
@@ -284,7 +285,7 @@ func waitForNoRbac(ctx context.Context, config *rest.Config, namespace string) e
 			time.Sleep(time.Second)
 			continue
 		}
-		lst2, err := rbac.ClusterRoles().List(listOptions)
+		lst2, err := rbac.ClusterRoles().List(context.TODO(), listOptions)
 		if err != nil {
 			return err
 		}
@@ -292,7 +293,7 @@ func waitForNoRbac(ctx context.Context, config *rest.Config, namespace string) e
 			time.Sleep(time.Second)
 			continue
 		}
-		lst3, err := rbac.RoleBindings("kube-system").List(listOptions)
+		lst3, err := rbac.RoleBindings("kube-system").List(context.TODO(), listOptions)
 		if err != nil {
 			return err
 		}
@@ -314,7 +315,7 @@ func waitForNoAPIAggregation(ctx context.Context, config *rest.Config, namespace
 		if isDone(ctx) {
 			return context.DeadlineExceeded
 		}
-		apisvcs, err := aggregator.APIServices().List(metav1.ListOptions{})
+		apisvcs, err := aggregator.APIServices().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return err
 		}
@@ -336,7 +337,7 @@ func waitForNoCoreComponents(ctx context.Context, config *rest.Config, namespace
 		if isDone(ctx) {
 			return context.DeadlineExceeded
 		}
-		secrets, err := client.Secrets(namespace).List(listOptions)
+		secrets, err := client.Secrets(namespace).List(context.TODO(), listOptions)
 		if err != nil {
 			return err
 		}
@@ -345,7 +346,7 @@ func waitForNoCoreComponents(ctx context.Context, config *rest.Config, namespace
 			continue
 		}
 
-		svcs, err := client.Services(namespace).List(listOptions)
+		svcs, err := client.Services(namespace).List(context.TODO(), listOptions)
 		if err != nil {
 			return err
 		}
@@ -354,7 +355,7 @@ func waitForNoCoreComponents(ctx context.Context, config *rest.Config, namespace
 			continue
 		}
 
-		sas, err := client.ServiceAccounts(namespace).List(listOptions)
+		sas, err := client.ServiceAccounts(namespace).List(context.TODO(), listOptions)
 		if err != nil {
 			return err
 		}

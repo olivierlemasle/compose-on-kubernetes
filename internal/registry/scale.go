@@ -79,7 +79,7 @@ func (r *stackScaleRest) Get(ctx context.Context, name string, options *metav1.G
 		return nil, err
 	}
 	for _, v := range stackDef.Deployments {
-		dep, err := apps.Deployments(stack.Namespace).Get(v.Name, metav1.GetOptions{})
+		dep, err := apps.Deployments(stack.Namespace).Get(context.TODO(), v.Name, metav1.GetOptions{})
 		if err != nil {
 			log.Errorf("Failed to get Deployment for %s: %s", v.Name, err)
 		} else {
@@ -87,7 +87,7 @@ func (r *stackScaleRest) Get(ctx context.Context, name string, options *metav1.G
 		}
 	}
 	for _, v := range stackDef.Statefulsets {
-		ss, err := apps.StatefulSets(stack.Namespace).Get(v.Name, metav1.GetOptions{})
+		ss, err := apps.StatefulSets(stack.Namespace).Get(context.TODO(), v.Name, metav1.GetOptions{})
 		if err != nil {
 			log.Errorf("Failed to get StatefulSet for %s: %s", v.Name, err)
 		} else {
@@ -95,7 +95,7 @@ func (r *stackScaleRest) Get(ctx context.Context, name string, options *metav1.G
 		}
 	}
 	for _, v := range stackDef.Daemonsets {
-		ds, err := apps.DaemonSets(stack.Namespace).Get(v.Name, metav1.GetOptions{})
+		ds, err := apps.DaemonSets(stack.Namespace).Get(context.TODO(), v.Name, metav1.GetOptions{})
 		if err != nil {
 			log.Errorf("Failed to get StatefulSet for %s: %s", v.Name, err)
 		} else {
